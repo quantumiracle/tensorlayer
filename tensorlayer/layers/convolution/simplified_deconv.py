@@ -130,7 +130,7 @@ class DeConv2d(Layer):
                 name=None
             )
 
-            self._apply_activation(self._temp_data['outputs'])
+            self._temp_data['outputs'] = self._apply_activation(self._temp_data['outputs'])
 
             self._temp_data['local_weights'] = tf.get_collection(TF_GRAPHKEYS_VARIABLES, scope=vs.name)
 
@@ -151,7 +151,7 @@ class DeConv3d(Layer):
     act : activation function
         The activation function of this layer.
     data_format : str
-        "channels_last" (NDHWC, default) or "channels_first" (NCDHW). 
+        "channels_last" (NDHWC, default) or "channels_first" (NCDHW).
     W_init : initializer
         The initializer for the weight matrix.
     b_init : initializer or None
@@ -245,6 +245,6 @@ class DeConv3d(Layer):
                 name=None
             )
 
-            self._apply_activation(self._temp_data['outputs'])
+            self._temp_data['outputs'] = self._apply_activation(self._temp_data['outputs'])
 
             self._temp_data['local_weights'] = tf.get_collection(TF_GRAPHKEYS_VARIABLES, scope=vs.name)

@@ -152,7 +152,7 @@ class Conv1d(Layer):
                 name=None
             )
 
-            self._apply_activation(self._temp_data['outputs'])
+            self._temp_data['outputs'] = self._apply_activation(self._temp_data['outputs'])
 
             self._temp_data['local_weights'] = tf.get_collection(TF_GRAPHKEYS_VARIABLES, scope=vs.name)
 
@@ -174,7 +174,7 @@ class Conv2d(Layer):
     padding : str
         The padding algorithm type: "SAME" or "VALID".
     data_format : str
-        "channels_last" (NHWC, default) or "channels_first" (NCHW). 
+        "channels_last" (NHWC, default) or "channels_first" (NCHW).
     W_init : initializer
         The initializer for the the weight matrix.
     b_init : initializer or None
@@ -294,6 +294,6 @@ class Conv2d(Layer):
                 name=None
             )
 
-        self._apply_activation(self._temp_data['outputs'])
+        self._temp_data['outputs'] = self._apply_activation(self._temp_data['outputs'])
 
         self._temp_data['local_weights'] = tf.get_collection(TF_GRAPHKEYS_VARIABLES, scope=vs.name)
