@@ -3,6 +3,8 @@
 
 from abc import ABCMeta, abstractmethod
 
+from contextlib import contextmanager
+
 import tensorflow as tf
 import tensorlayer as tl
 
@@ -39,6 +41,8 @@ class BaseNetwork(core.BaseLayer):
         self.inputs = None
         self.outputs = None
 
+        self.is_model_frozen = False
+
         self.name = name
 
         if self.name is None:
@@ -66,7 +70,16 @@ class BaseNetwork(core.BaseLayer):
     def __str__(self):
         return "%s model: `%s`" % (self.__class__.__name__, self.name)
 
+    @contextmanager
+    def stop_autoregistering_layers(self):
+        self.is_model_frozen = True
+        yield
+        self.is_model_frozen = False
+
     def register_new_layer(self, layer):
+
+        if self.is_model_frozen:
+            return
 
         if not isinstance(layer, tl.layers.Layer):
             raise TypeError('You can only register a `tensorlayer.layers.Layer`. Found: %s' % type(layer))
@@ -125,7 +138,7 @@ class BaseNetwork(core.BaseLayer):
                             raise ValueError("`prev_layer` should be either a `str` or a list of `str`")
 
                         if isinstance(built_inputs, (tuple, list)) \
-                            and not isinstance(layer_factory, (tl.layers.ConcatLayer, tl.layers.StackLayer, tl.layers.ElementwiseLayer)):
+                            and not isinstance(layer_factory, (tl.layers.ConcatLayer, tl.layers.StackLayer, tl.layers.ElementwiseLayer, tl.layers.ElementwiseLambdaLayer)):
                             network = layer_factory(*built_inputs, is_train=is_train)
                         else:
                             network = layer_factory(prev_layer=built_inputs, is_train=is_train)

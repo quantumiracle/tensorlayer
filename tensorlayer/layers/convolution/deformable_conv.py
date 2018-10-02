@@ -112,6 +112,8 @@ class DeformableConv2d(Layer):
         input_layer = self._temp_data['inputs'][0]
         offset_layer = self._temp_data['inputs'][1]
 
+        input_dtype = input_layer.dtype
+
         try:
             input_channels = int(input_layer.get_shape()[-1])
 
@@ -147,7 +149,7 @@ class DeformableConv2d(Layer):
             # initial_offsets --> (h, w, n, 2)
             initial_offsets = tf.tile(initial_offsets, [input_h, input_w, 1, 1])
 
-            initial_offsets = tf.cast(initial_offsets, 'float32')
+            initial_offsets = tf.cast(initial_offsets, input_dtype)
 
             grid = tf.meshgrid(
                 tf.range(-int((w_shape[0] - 1) / 2.0), int(input_h - int((w_shape[0] - 1) / 2.0)), 1),
@@ -158,7 +160,7 @@ class DeformableConv2d(Layer):
             grid = tf.stack(grid, axis=-1)
 
             # grid --> (h, w, 2)
-            grid = tf.cast(grid, 'float32')
+            grid = tf.cast(grid, input_dtype)
 
             # grid --> (h, w, 1, 2)
             grid = tf.expand_dims(grid, 2)
@@ -174,7 +176,7 @@ class DeformableConv2d(Layer):
             weight_matrix = self._get_tf_variable(
                 name='W_deformableconv2d',
                 shape=(1, 1, w_shape[0] * w_shape[1], w_shape[-2], w_shape[-1]),
-                dtype=input_layer.dtype,
+                dtype=input_dtype,
                 trainable=self._temp_data['is_train'],
                 initializer=self.W_init,
                 **self.W_init_args
@@ -186,7 +188,7 @@ class DeformableConv2d(Layer):
                 b = self._get_tf_variable(
                     name='b_deformableconv2d',
                     shape=(w_shape[-1]),
-                    dtype=input_layer.dtype,
+                    dtype=input_dtype,
                     trainable=self._temp_data['is_train'],
                     initializer=self.b_init,
                     **self.b_init_args
@@ -194,8 +196,10 @@ class DeformableConv2d(Layer):
 
                 _tensor = tf.nn.bias_add(_tensor, b, name='bias_add')
 
+            _tensor = self._apply_activation(_tensor)
+
             self._temp_data['outputs'] = tf.reshape(
-                tensor=self._apply_activation(_tensor), shape=[tf.shape(input_layer)[0], input_h, input_w, w_shape[-1]]
+                tensor=_tensor, shape=[tf.shape(input_layer)[0], input_h, input_w, w_shape[-1]]
             )
 
     @private_method
@@ -261,7 +265,11 @@ class DeformableConv2d(Layer):
         """
         input_shape = inputs.get_shape()
         coords_shape = coords.get_shape()
+
         batch_channel = tf.shape(inputs)[0]
+
+        input_dtype = inputs.dtype
+
         input_h = int(input_shape[1])
         input_w = int(input_shape[2])
         kernel_n = int(coords_shape[3])
@@ -279,7 +287,7 @@ class DeformableConv2d(Layer):
         vals_lb = self._get_vals_by_coords(inputs, coords_lb, idx, (batch_channel, input_h, input_w, kernel_n))
         vals_rt = self._get_vals_by_coords(inputs, coords_rt, idx, (batch_channel, input_h, input_w, kernel_n))
 
-        coords_offset_lt = coords - tf.cast(coords_lt, 'float32')
+        coords_offset_lt = coords - tf.cast(coords_lt, input_dtype)
 
         vals_t = vals_lt + (vals_rt - vals_lt) * coords_offset_lt[:, :, :, :, 0]
         vals_b = vals_lb + (vals_rb - vals_lb) * coords_offset_lt[:, :, :, :, 0]
@@ -307,6 +315,7 @@ class DeformableConv2d(Layer):
 
         """
         input_shape = inputs.get_shape()
+        input_dtype = inputs.dtype
         batch_size = tf.shape(inputs)[0]
         kernel_n = int(int(offsets.get_shape()[3]) / 2)
         input_h = input_shape[1]
@@ -322,13 +331,14 @@ class DeformableConv2d(Layer):
         # offsets = tf.tile(offsets, [channel, 1, 1, 1, 1])
 
         coords = tf.expand_dims(grid_offset, 0)  # grid_offset --> (1, h, w, n, 2)
-        coords = tf.tile(coords, [batch_size, 1, 1, 1, 1]) + offsets  # grid_offset --> (b, h, w, n, 2)
+        coords = tf.cast(tf.tile(coords, [batch_size, 1, 1, 1, 1]),
+                         input_dtype) + offsets  # grid_offset --> (b, h, w, n, 2)
 
         # clip out of bound
         coords = tf.stack(
             [
-                tf.clip_by_value(coords[:, :, :, :, 0], 0.0, tf.cast(input_h - 1, 'float32')),
-                tf.clip_by_value(coords[:, :, :, :, 1], 0.0, tf.cast(input_w - 1, 'float32'))
+                tf.clip_by_value(coords[:, :, :, :, 0], 0.0, tf.cast(input_h - 1, input_dtype)),
+                tf.clip_by_value(coords[:, :, :, :, 1], 0.0, tf.cast(input_w - 1, input_dtype))
             ],
             axis=-1
         )
