@@ -41,18 +41,18 @@ def main_test_layers(model='relu'):
     # to speed up computation, so we use identity in the last layer.
     # see tf.nn.sparse_softmax_cross_entropy_with_logits()
     if model == 'relu':
-        net = tl.layers.InputLayer(name='input')(x)
-        net = tl.layers.DropoutLayer(keep=0.8, name='drop1')(net)
-        net = tl.layers.DenseLayer(n_units=800, act=tf.nn.relu, name='relu1')(net)
-        net = tl.layers.DropoutLayer(keep=0.5, name='drop2')(net)
-        net = tl.layers.DenseLayer(n_units=800, act=tf.nn.relu, name='relu2')(net)
-        net = tl.layers.DropoutLayer(keep=0.5, name='drop3')(net)
-        net = tl.layers.DenseLayer(n_units=10, act=None, name='output')(net)
+        net = tl.layers.Input(name='input')(x)
+        net = tl.layers.Dropout(keep=0.8, name='drop1')(net)
+        net = tl.layers.Dense(n_units=800, act=tf.nn.relu, name='relu1')(net)
+        net = tl.layers.Dropout(keep=0.5, name='drop2')(net)
+        net = tl.layers.Dense(n_units=800, act=tf.nn.relu, name='relu2')(net)
+        net = tl.layers.Dropout(keep=0.5, name='drop3')(net)
+        net = tl.layers.Dense(n_units=10, act=None, name='output')(net)
     elif model == 'dropconnect':
-        net = tl.layers.InputLayer(name='input')(x)
-        net = tl.layers.DropconnectDenseLayer(keep=0.8, n_units=800, act=tf.nn.relu, name='dropconnect1')(net)
-        net = tl.layers.DropconnectDenseLayer(keep=0.5, n_units=800, act=tf.nn.relu, name='dropconnect2')(net)
-        net = tl.layers.DropconnectDenseLayer(keep=0.5, n_units=10, act=None, name='output')(net)
+        net = tl.layers.Input(name='input')(x)
+        net = tl.layers.DropconnectDense(keep=0.8, n_units=800, act=tf.nn.relu, name='dropconnect1')(net)
+        net = tl.layers.DropconnectDense(keep=0.5, n_units=800, act=tf.nn.relu, name='dropconnect2')(net)
+        net = tl.layers.DropconnectDense(keep=0.5, n_units=10, act=None, name='output')(net)
 
     # To print all attributes of a Layer.
     # attrs = vars(net)
@@ -66,9 +66,9 @@ def main_test_layers(model='relu'):
     # y_op = tf.argmax(tf.nn.softmax(y), 1)
 
     # You can add more penalty to the cost function as follow.
-    # cost = cost + tl.cost.maxnorm_regularizer(1.0)(net.all_params[0]) + tl.cost.maxnorm_regularizer(1.0)(net.all_params[2])
-    # cost = cost + tl.cost.lo_regularizer(0.0001)(net.all_params[0]) + tl.cost.lo_regularizer(0.0001)(net.all_params[2])
-    # cost = cost + tl.cost.maxnorm_o_regularizer(0.001)(net.all_params[0]) + tl.cost.maxnorm_o_regularizer(0.001)(net.all_params[2])
+    # cost = cost + tl.cost.maxnorm_regularizer(1.0)(net.all_weights[0]) + tl.cost.maxnorm_regularizer(1.0)(net.all_weights[2])
+    # cost = cost + tl.cost.lo_regularizer(0.0001)(net.all_weights[0]) + tl.cost.lo_regularizer(0.0001)(net.all_weights[2])
+    # cost = cost + tl.cost.maxnorm_o_regularizer(0.001)(net.all_weights[0]) + tl.cost.maxnorm_o_regularizer(0.001)(net.all_weights[2])
 
     # train
     n_epoch = 100
@@ -79,7 +79,7 @@ def main_test_layers(model='relu'):
 
     tl.layers.initialize_global_variables(sess)
 
-    net.print_params()
+    net.print_weights()
     net.print_layers()
 
     print('   learning_rate: %f' % learning_rate)
@@ -122,9 +122,9 @@ def main_test_layers(model='relu'):
             print("   val acc: %f" % (val_acc / n_batch))
             # try:
             #     # You can visualize the weight of 1st hidden layer as follow.
-            #     tl.vis.draw_weights(net.all_params[0].eval(), second=10, saveable=True, shape=[28, 28], name='w1_' + str(epoch + 1), fig_idx=2012)
+            #     tl.vis.draw_weights(net.all_weights[0].eval(), second=10, saveable=True, shape=[28, 28], name='w1_' + str(epoch + 1), fig_idx=2012)
             #     # You can also save the weight of 1st hidden layer to .npz file.
-            #     # tl.files.save_npz([net.all_params[0]] , name='w1'+str(epoch+1)+'.npz')
+            #     # tl.files.save_npz([net.all_weights[0]] , name='w1'+str(epoch+1)+'.npz')
             # except:  # pylint: disable=bare-except
             #     print("You should change vis.draw_weights(), if you want to save the feature images for different dataset")
 
@@ -147,12 +147,12 @@ def main_test_layers(model='relu'):
     print("Model saved in file: %s" % save_path)
 
     # You can also save the parameters into .npz file.
-    tl.files.save_npz(net.all_params, name='model.npz')
+    tl.files.save_npz(net.all_weights, name='model.npz')
     # You can only save one parameter as follow.
-    # tl.files.save_npz([net.all_params[0]] , name='model.npz')
+    # tl.files.save_npz([net.all_weights[0]] , name='model.npz')
     # Then, restore the parameters as follow.
-    # load_params = tl.files.load_npz(path='', name='model.npz')
-    # tl.files.assign_params(sess, load_params, net)
+    # load_weights = tl.files.load_npz(path='', name='model.npz')
+    # tl.files.assign_weights(sess, load_weights, net)
 
     # In the end, close TensorFlow session.
     sess.close()
@@ -168,23 +168,23 @@ def main_test_denoise_AE(model='relu'):
 
     print("Build net")
     if model == 'relu':
-        net = tl.layers.InputLayer(name='input')(x)
-        net = tl.layers.DropoutLayer(keep=0.5, name='denoising1')(net)  # if drop some inputs, it is denoise AE
-        net = tl.layers.DenseLayer(n_units=196, act=tf.nn.relu, name='relu1')(net)
-        recon_layer1 = tl.layers.ReconLayer(x_recon=x, n_units=784, act=tf.nn.softplus, name='recon_layer1')(net)
+        net = tl.layers.Input(name='input')(x)
+        net = tl.layers.Dropout(keep=0.5, name='denoising1')(net)  # if drop some inputs, it is denoise AE
+        net = tl.layers.Dense(n_units=196, act=tf.nn.relu, name='relu1')(net)
+        recon_layer1 = tl.layers.Recon(x_recon=x, n_units=784, act=tf.nn.softplus, name='recon_layer1')(net)
     elif model == 'sigmoid':
         # sigmoid - set keep to 1.0, if you want a vanilla Autoencoder
-        net = tl.layers.InputLayer(name='input')(x)
-        net = tl.layers.DropoutLayer(keep=0.5, name='denoising1')(net)
-        net = tl.layers.DenseLayer(n_units=196, act=tf.nn.sigmoid, name='sigmoid1')(net)
-        recon_layer1 = tl.layers.ReconLayer(x_recon=x, n_units=784, act=tf.nn.sigmoid, name='recon_layer1')(net)
+        net = tl.layers.Input(name='input')(x)
+        net = tl.layers.Dropout(keep=0.5, name='denoising1')(net)
+        net = tl.layers.Dense(n_units=196, act=tf.nn.sigmoid, name='sigmoid1')(net)
+        recon_layer1 = tl.layers.Recon(x_recon=x, n_units=784, act=tf.nn.sigmoid, name='recon_layer1')(net)
 
     # ready to train
     tl.layers.initialize_global_variables(sess)
 
     # print all params
     print("All net Params")
-    net.print_params()
+    net.print_weights()
 
     # pretrain
     print("Pre-train Layer 1")
@@ -231,21 +231,21 @@ def main_test_stacked_denoise_AE(model='relu'):
 
     # Define net
     print("\nBuild net")
-    net = tl.layers.InputLayer(name='input')(x)
+    net = tl.layers.Input(name='input')(x)
     # denoise layer for AE
-    net = tl.layers.DropoutLayer(keep=0.5, name='denoising1')(net)
+    net = tl.layers.Dropout(keep=0.5, name='denoising1')(net)
     # 1st layer
-    net = tl.layers.DropoutLayer(keep=0.8, name='drop1')(net)
-    net = tl.layers.DenseLayer(n_units=800, act=act, name=model + '1')(net)
+    net = tl.layers.Dropout(keep=0.8, name='drop1')(net)
+    net = tl.layers.Dense(n_units=800, act=act, name=model + '1')(net)
     x_recon1 = net.outputs
     recon_layer1 = tl.layers.ReconLayer(x_recon=x, n_units=784, act=act_recon, name='recon_layer1')(net)
     # 2nd layer
-    net = tl.layers.DropoutLayer(keep=0.5, name='drop2')(net)
-    net = tl.layers.DenseLayer(n_units=800, act=act, name=model + '2')(net)
-    recon_layer2 = tl.layers.ReconLayer(x_recon=x_recon1, n_units=800, act=act_recon, name='recon_layer2')(net)
+    net = tl.layers.Dropout(keep=0.5, name='drop2')(net)
+    net = tl.layers.Dense(n_units=800, act=act, name=model + '2')(net)
+    recon_layer2 = tl.layers.Recon(x_recon=x_recon1, n_units=800, act=act_recon, name='recon_layer2')(net)
     # 3rd layer
-    net = tl.layers.DropoutLayer(keep=0.5, name='drop3')(net)
-    net = tl.layers.DenseLayer(10, act=None, name='output')(net)
+    net = tl.layers.Dropout(keep=0.5, name='drop3')(net)
+    net = tl.layers.Dense(10, act=None, name='output')(net)
 
     # Define fine-tune process
     y = net.outputs
@@ -256,17 +256,17 @@ def main_test_stacked_denoise_AE(model='relu'):
     learning_rate = 0.0001
     print_freq = 10
 
-    train_params = net.all_params
+    train_weights = net.all_weights
 
     # train_op = tf.train.GradientDescentOptimizer(0.5).minimize(cost)
-    train_op = tf.train.AdamOptimizer(learning_rate).minimize(cost, var_list=train_params)
+    train_op = tf.train.AdamOptimizer(learning_rate).minimize(cost, var_list=train_weights)
 
     # Initialize all variables including weights, biases and the variables in train_op
     tl.layers.initialize_global_variables(sess)
 
     # Pre-train
     print("\nAll net Params before pre-train")
-    net.print_params()
+    net.print_weights()
     print("\nPre-train Layer 1")
     recon_layer1.pretrain(
         sess,
@@ -293,7 +293,7 @@ def main_test_stacked_denoise_AE(model='relu'):
         save=False
     )
     print("\nAll net Params after pre-train")
-    net.print_params()
+    net.print_weights()
 
     # Fine-tune
     print("\nFine-tune net")
@@ -337,7 +337,7 @@ def main_test_stacked_denoise_AE(model='relu'):
             print("   val acc: %f" % (val_acc / n_batch))
             # try:
             #     # visualize the 1st hidden layer during fine-tune
-            #     tl.vis.draw_weights(net.all_params[0].eval(), second=10, saveable=True, shape=[28, 28], name='w1_' + str(epoch + 1), fig_idx=2012)
+            #     tl.vis.draw_weights(net.all_weights[0].eval(), second=10, saveable=True, shape=[28, 28], name='w1_' + str(epoch + 1), fig_idx=2012)
             # except:  # pylint: disable=bare-except
             #     print("You should change vis.draw_weights(), if you want to save the feature images for different dataset")
 
@@ -388,17 +388,17 @@ def main_test_cnn_layer():
     x = tf.placeholder(tf.float32, shape=[batch_size, 28, 28, 1])  # [batch_size, height, width, channels]
     y_ = tf.placeholder(tf.int64, shape=[batch_size])
 
-    net = tl.layers.InputLayer(name='input')(x)
+    net = tl.layers.Input(name='input')(x)
     net = tl.layers.Conv2d(32, (5, 5), (1, 1), act=tf.nn.relu, padding='SAME', name='cnn1')(net)
     net = tl.layers.MaxPool2d((2, 2), (2, 2), padding='SAME', name='pool1')(net)
     net = tl.layers.Conv2d(64, (5, 5), (1, 1), act=tf.nn.relu, padding='SAME', name='cnn2')(net)
     net = tl.layers.MaxPool2d((2, 2), (2, 2), padding='SAME', name='pool2')(net)
     # end of conv
-    net = tl.layers.FlattenLayer(name='flatten')(net)
-    net = tl.layers.DropoutLayer(keep=0.5, name='drop1')(net)
-    net = tl.layers.DenseLayer(256, act=tf.nn.relu, name='relu1')(net)
-    net = tl.layers.DropoutLayer(keep=0.5, name='drop2')(net)
-    net = tl.layers.DenseLayer(10, act=None, name='output')(net)
+    net = tl.layers.Flatten(name='flatten')(net)
+    net = tl.layers.Dropout(keep=0.5, name='drop1')(net)
+    net = tl.layers.Dense(256, act=tf.nn.relu, name='relu1')(net)
+    net = tl.layers.Dropout(keep=0.5, name='drop2')(net)
+    net = tl.layers.Dense(10, act=None, name='output')(net)
 
     y = net.outputs
 
@@ -412,11 +412,11 @@ def main_test_cnn_layer():
     learning_rate = 0.0001
     print_freq = 10
 
-    train_params = net.all_params
-    train_op = tf.train.AdamOptimizer(learning_rate).minimize(cost, var_list=train_params)
+    train_weights = net.all_weights
+    train_op = tf.train.AdamOptimizer(learning_rate).minimize(cost, var_list=train_weights)
 
     tl.layers.initialize_global_variables(sess)
-    net.print_params()
+    net.print_weights()
     net.print_layers()
 
     print('   learning_rate: %f' % learning_rate)
@@ -454,7 +454,7 @@ def main_test_cnn_layer():
             print("   val loss: %f" % (val_loss / n_batch))
             print("   val acc: %f" % (val_acc / n_batch))
             # try:
-            #     tl.vis.CNN2d(net.all_params[0].eval(), second=10, saveable=True, name='cnn1_' + str(epoch + 1), fig_idx=2012)
+            #     tl.vis.CNN2d(net.all_weights[0].eval(), second=10, saveable=True, name='cnn1_' + str(epoch + 1), fig_idx=2012)
             # except:  # pylint: disable=bare-except
             #     print("You should change vis.CNN(), if you want to save the feature images for different dataset")
 

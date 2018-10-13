@@ -18,11 +18,11 @@ from tensorlayer.decorators import private_method
 from tensorlayer.decorators import deprecated_alias
 from tensorlayer.decorators import deprecated_args
 
-__all__ = ['SpatialTransformer2dAffineLayer']
+__all__ = ['SpatialTransformer2dAffine']
 
 
-class SpatialTransformer2dAffineLayer(Layer):
-    """The :class:`SpatialTransformer2dAffineLayer` class is a 2D `Spatial Transformer Layer <https://arxiv.org/abs/1506.02025>`__ for
+class SpatialTransformer2dAffine(Layer):
+    """The :class:`SpatialTransformer2dAffine` class is a 2D `Spatial Transformer Layer <https://arxiv.org/abs/1506.02025>`__ for
     `2D Affine Transformation <https://en.wikipedia.org/wiki/Affine_transformation>`__.
 
     Parameters
@@ -51,7 +51,7 @@ class SpatialTransformer2dAffineLayer(Layer):
         self.out_size = out_size
         self.name = name
 
-        super(SpatialTransformer2dAffineLayer, self).__init__()
+        super(SpatialTransformer2dAffine, self).__init__()
 
     def __str__(self):
         additional_str = []
@@ -62,7 +62,7 @@ class SpatialTransformer2dAffineLayer(Layer):
             pass
 
         try:
-            additional_str.append("out_size: %s" % self.out_size)
+            additional_str.append("out_size: %s" % str(self.out_size))
         except AttributeError:
             pass
 
@@ -74,11 +74,11 @@ class SpatialTransformer2dAffineLayer(Layer):
             Previous layer.
         theta_layer : :class:`Layer`
             The localisation network.
-            - We will use a :class:`DenseLayer` to make the theta size to [batch, 6], value range to [0, 1] (via tanh).
+            - We will use a :class:`Dense` to make the theta size to [batch, 6], value range to [0, 1] (via tanh).
         is_train: boolean (default: True)
             Set the TF Variable in training mode and may impact the behaviour of the layer.
         """
-        return super(SpatialTransformer2dAffineLayer, self).__call__(
+        return super(SpatialTransformer2dAffine, self).__call__(
             prev_layer=[prev_layer, theta_layer], is_train=is_train
         )
 
@@ -90,12 +90,12 @@ class SpatialTransformer2dAffineLayer(Layer):
         with tf.variable_scope(self.name) as vs:
 
             # 1. make the localisation network to [batch, 6] via Flatten and Dense.
-            if theta_layer.outputs.get_shape().ndims > 2:
-                theta_layer.outputs = flatten_reshape(theta_layer.outputs, 'flatten')
+            if theta_layer.get_shape().ndims > 2:
+                theta_layer = flatten_reshape(theta_layer, 'flatten')
 
             # 2. To initialize the network to the identity transform init.
             # 2.1 W
-            w_shape = (int(theta_layer.outputs.get_shape()[-1]), 6)
+            w_shape = (int(theta_layer.get_shape()[-1]), 6)
 
             weight_matrix = self._get_tf_variable(
                 name='W',
@@ -115,7 +115,7 @@ class SpatialTransformer2dAffineLayer(Layer):
             )
 
             # 2.3 transformation matrix
-            self.theta = tf.nn.tanh(tf.matmul(theta_layer.outputs, weight_matrix) + b)
+            self.theta = tf.nn.tanh(tf.matmul(theta_layer, weight_matrix) + b)
 
             # 3. Spatial Transformer Sampling
             # 3.1 transformation

@@ -23,20 +23,20 @@ y_ = tf.placeholder(tf.int64, shape=[batch_size])
 
 def model(x, is_train=True, reuse=False):
     with tf.variable_scope("model", reuse=reuse):
-        n = InputLayer(name='input')(x)
+        n = Input(name='input')(x)
         # cnn
         n = Conv2d(32, (5, 5), (1, 1), padding='SAME', name='cnn1')(n)
-        n = BatchNormLayer(act=tf.nn.relu, decay=0.95, name='bn1')(n, is_train=is_train)
+        n = BatchNorm(act=tf.nn.relu, decay=0.95, name='bn1')(n, is_train=is_train)
         n = MaxPool2d((2, 2), (2, 2), padding='SAME', name='pool1')(n)
         n = Conv2d(64, (5, 5), (1, 1), padding='SAME', name='cnn2')(n)
-        n = BatchNormLayer(act=tf.nn.relu, decay=0.95, name='bn2')(n, is_train=is_train)
+        n = BatchNorm(act=tf.nn.relu, decay=0.95, name='bn2')(n, is_train=is_train)
         n = MaxPool2d((2, 2), (2, 2), padding='SAME', name='pool2')(n)
         # mlp
-        n = FlattenLayer(name='flatten')(n)
-        n = DropoutLayer(0.5, True, is_train, name='drop1')(n)
-        n = DenseLayer(256, act=tf.nn.relu, name='relu1')(n)
-        n = DropoutLayer(0.5, True, is_train, name='drop2')(n)
-        n = DenseLayer(10, act=None, name='output')(n)
+        n = Flatten(name='flatten')(n)
+        n = Dropout(0.5, True, is_train, name='drop1')(n)
+        n = Dense(256, act=tf.nn.relu, name='relu1')(n)
+        n = Dropout(0.5, True, is_train, name='drop2')(n)
+        n = Dense(10, act=None, name='output')(n)
     return n
 
 
@@ -44,7 +44,7 @@ def model(x, is_train=True, reuse=False):
 net_train = model(x, is_train=True, reuse=False)
 net_test = model(x, is_train=False, reuse=True)
 
-net_train.print_params(False)
+net_train.print_weights(False)
 
 # cost for training
 y = net_train.outputs
@@ -57,13 +57,13 @@ correct_prediction = tf.equal(tf.argmax(y2, 1), y_)
 acc = tf.reduce_mean(tf.cast(correct_prediction, LayersConfig.tf_dtype))
 
 # define the optimizer
-train_params = tl.layers.get_variables_with_name('model', train_only=True, printable=False)
+train_weights = tl.layers.get_variables_with_name('model', train_only=True, printable=False)
 # for float16 epsilon=1e-4 see https://stackoverflow.com/questions/42064941/tensorflow-float16-support-is-broken
 # for float32 epsilon=1e-08
 train_op = tf.train.AdamOptimizer(
     learning_rate=0.0001, beta1=0.9, beta2=0.999, epsilon=1e-4, use_locking=False
 ).minimize(
-    cost, var_list=train_params
+    cost, var_list=train_weights
 )
 
 # initialize all variables in the session
